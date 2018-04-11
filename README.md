@@ -9,6 +9,8 @@ To build it I use `cabal`:
 
 ```shell
 cabal sandbox init
+cabal install alex
+cabal install happy
 cabal install --only-dependecies
 cabal build
 ```
