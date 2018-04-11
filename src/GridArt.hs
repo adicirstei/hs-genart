@@ -2,14 +2,22 @@
 {-# LANGUAGE TypeApplications #-}
 
 
-module GridArt ( renderSketch ) where
+module GridArt  where
 
 
-import           Data.Foldable        (for_)
-import           Data.List            (nub)
-import qualified Numeric.Noise.Perlin as P
+import           Data.List                (nub)
+import qualified Numeric.Noise.Perlin     as P
 
-import           Base
+import           Control.Arrow
+import           Control.Concurrent
+import           Control.Monad.Random
+import           Control.Monad.Reader
+import           Data.Colour.RGBSpace
+import           Data.Colour.RGBSpace.HSV
+import           Data.Foldable            (for_)
+import           Graphics.Rendering.Cairo
+import           Linear.V2
+import           Linear.Vector
 
 
 data World = World
@@ -21,6 +29,64 @@ data World = World
 
 type Generate a = RandT StdGen (ReaderT World Render) a
 
+init :: Int -> IO Surface
+init seed = do
+  let
+    stdGen = mkStdGen seed
+    width = 40
+    height = 40
+    scaleAmount = 30
+    scaleWidth = round $ fromIntegral width * scaleAmount
+    scaleHeight = round $ fromIntegral height * scaleAmount
+  sourface <- createImageSurface FormatARGB32 scaleWidth scaleHeight
+  let world = World width height seed scaleAmount
+  render' sourface world stdGen $
+    do
+      cairo $ scale scaleAmount scaleAmount
+      renderSketch
+  return sourface
+
+
+
+
+hsva :: Double -> Double -> Double -> Double -> Render ()
+hsva h s v = setSourceRGBA channelRed channelGreen channelBlue
+ where RGB{..} = hsv h s v
+
+fromIntegralVector :: V2 Int -> V2 Double
+fromIntegralVector (V2 x y) = V2 (fromIntegral x) (fromIntegral y)
+
+
+fillScreen :: (Double -> Render a) -> Double -> Generate ()
+fillScreen color opacity = do
+  (w, h) <- getSize @Double
+  cairo $ do
+    rectangle 0 0 w h
+    color opacity *> fill
+
+renderClosedPath :: [V2 Double] -> Render ()
+renderClosedPath (V2 x y:vs) = do
+  newPath
+  moveTo x y
+  for_ vs $ \v -> let V2 x' y' = v in lineTo x' y'
+  closePath
+renderClosedPath [] = pure ()
+
+render' :: Surface -> World -> StdGen -> Generate a -> IO ()
+render' s w g
+  = void
+  . renderWith s
+  . flip runReaderT w
+  . flip runRandT g
+
+cairo :: Render a -> Generate a
+cairo = lift . lift
+
+
+getSize :: Num a => Generate (a, a)
+getSize = do
+  (w, h) <- asks (worldWidth &&& worldHeight)
+  pure (fromIntegral w, fromIntegral h)
 
 eggshell :: Double -> Render ()
 eggshell = hsva 71 0.13 0.96
