@@ -1,7 +1,6 @@
 module Main where
 
 
-import           Base
 import           Control.Monad.Random
 import           Control.Monad.Reader
 import           Data.Semigroup        ((<>))
@@ -17,14 +16,14 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   let
     stdGen = mkStdGen seed
-    width = 60
-    height = 60
-    scaleAmount = 20
+    width = 20
+    height = 20
+    scaleAmount = 60
     scaleWidth = round $ fromIntegral width * scaleAmount
     scaleHeight = round $ fromIntegral height * scaleAmount
-  sourface <- Base.sourface scaleWidth scaleHeight
-  let world = Base.world width height seed scaleAmount
-  Base.render' sourface world stdGen $
+  sourface <- sourface scaleWidth scaleHeight
+  let world = world width height seed scaleAmount
+  render' sourface world stdGen $
     do
       cairo $ scale scaleAmount scaleAmount
       renderSketch

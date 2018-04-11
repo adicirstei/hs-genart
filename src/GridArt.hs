@@ -12,6 +12,14 @@ import qualified Numeric.Noise.Perlin as P
 import           Base
 
 
+data World = World
+  { worldWidth  :: Int
+  , worldHeight :: Int
+  , worldSeed   :: Int
+  , worldScale  :: Double
+  }
+
+type Generate a = RandT StdGen (ReaderT World Render) a
 
 
 eggshell :: Double -> Render ()
