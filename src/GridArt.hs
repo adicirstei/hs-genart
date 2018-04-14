@@ -9,7 +9,7 @@ import           Data.List                (nub)
 import qualified Numeric.Noise.Perlin     as P
 
 import           Control.Arrow
-import           Control.Concurrent
+-- import           Control.Concurrent
 import           Control.Monad.Random
 import           Control.Monad.Reader
 import           Data.Colour.RGBSpace
@@ -40,11 +40,16 @@ init seed = do
     scaleHeight = round $ fromIntegral height * scaleAmount
   sourface <- createImageSurface FormatARGB32 scaleWidth scaleHeight
   let world = World width height seed scaleAmount
-  render' sourface world stdGen $
-    do
+  --render' sourface world stdGen
+  void
+    . renderWith sourface
+    . flip runReaderT world
+    . flip runRandT stdGen
+    $ do
       cairo $ scale scaleAmount scaleAmount
       renderSketch
-  return sourface
+
+  pure sourface
 
 
 
@@ -72,12 +77,6 @@ renderClosedPath (V2 x y:vs) = do
   closePath
 renderClosedPath [] = pure ()
 
-render' :: Surface -> World -> StdGen -> Generate a -> IO ()
-render' s w g
-  = void
-  . renderWith s
-  . flip runReaderT w
-  . flip runRandT g
 
 cairo :: Render a -> Generate a
 cairo = lift . lift
