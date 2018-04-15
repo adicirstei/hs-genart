@@ -9,7 +9,7 @@ import           Graphics.Rendering.Cairo (surfaceWriteToPNG)
 import           GridArt
 import           Text.Printf
 import           Tree
-import           Walker
+import           Watercolor
 
 main :: IO ()
 main = do
@@ -17,7 +17,7 @@ main = do
 
   putStrLn "Generating art..."
 --  sourface <- GridArt.init seed
-  sourface <- Tree.generate seed
+  sourface <- Watercolor.generate seed
   surfaceWriteToPNG sourface
     $ "images/example/"
     <> show seed <> ".png"
