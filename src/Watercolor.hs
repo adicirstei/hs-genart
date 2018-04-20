@@ -83,7 +83,7 @@ render = do
   (w, h) <- getSize
   seed <- asks worldSeed
   let g = mkStdGen seed
-  p <- genPoly 15
+  p <- genPoly 9
 
   cairo $ do
     save
@@ -91,6 +91,12 @@ render = do
     paintPath p
   p' <- subdividePoly p
   cairo $ paintPath p'
+
+  p'' <- subdividePoly p'
+  cairo $ paintPath p''
+
+
+
   cairo $ restore
 
 
@@ -105,25 +111,25 @@ genPoly n = do
     a = 6.28 / fromIntegral n
 
     v = (\i -> V2 (r * cos(a * fromIntegral i)) (r * sin(a * fromIntegral i))) <$> [0 .. (n-1)]
-  pure v
+  pure $ v <> [head v]
 
+gaussian :: Generate Double
+gaussian = liftRandT $ pure . normal
 
 subdividePoly :: LinePath -> Generate LinePath
 subdividePoly [] = pure []
 subdividePoly [v] = pure [v]
-subdividePoly (h: _: vs) = do
-  (_:p) <- sub $ vs <> [h]
-  pure p
-    where
-      sub (a: b: rest) = do
-        g <- liftRand normal
-        let
-          m = 0.5 *^ (a ^+^ b)
-          da = (pi / 2) + dir (a ^-^ b)
-          s = sz (a ^-^ b)
-          newPoint = m ^+^ (v2 da (s*g))
-        re <- sub (b: rest)
-        pure $ a:newPoint: re
+subdividePoly (a: b: vs) = do
+  g <- liftRandT $ pure . normal
+  let
+    diff =  a ^-^ b
+    m = 0.5 *^ (a ^+^ b)
+    da = (pi / 2) + dir diff
+    s = sz diff
+    newP = m ^+^ (v2 da (g*s*0.7))
+  rest <- subdividePoly (b:vs)
+  pure (a:newP:rest)
+
 
 dir :: V2 Double -> Double
 dir (V2 x y) = atan (y/x)

@@ -2,14 +2,14 @@ module Main where
 
 
 -- import           Control.Monad.Random
+import           BinaryRing
 import           Control.Monad.Reader
 import           Data.Semigroup           ((<>))
 import           Data.Time.Clock.POSIX
 import           Graphics.Rendering.Cairo (surfaceWriteToPNG)
 import           GridArt
 import           Text.Printf
-import           Tree
-import           Watercolor
+
 
 main :: IO ()
 main = do
@@ -17,7 +17,7 @@ main = do
 
   putStrLn "Generating art..."
 --  sourface <- GridArt.init seed
-  sourface <- Watercolor.generate seed
+  sourface <- BinaryRing.generate seed
   surfaceWriteToPNG sourface
     $ "images/example/"
     <> show seed <> ".png"
