@@ -16,6 +16,10 @@ import           World.Generate
 wWidth = 100
 wHeight = 100
 scaleAmt = 10
+world seed = World wWidth wHeight seed (fromIntegral scaleAmt)
+generator = mkStdGen
+
+
 
 data Particle = Particle
   { x   :: Double
@@ -42,6 +46,32 @@ generate seed = do
       render
 
   pure s
+
+onScreenRender :: Int -> Render ()
+onScreenRender seed = do
+  let
+    w = World wWidth wHeight seed (fromIntegral scaleAmt)
+    g = mkStdGen seed
+  void
+    . flip runReaderT w
+    . flip runRandT g
+    $ do
+      cairo $ scale (fromIntegral scaleAmt) (fromIntegral scaleAmt)
+      render
+
+createParticles :: Generate [Particle]
+createParticles = do
+  fillScreen black 1
+  cairo save
+  cairo $ translate (fromIntegral wWidth / 2) (fromIntegral wHeight / 2)
+  cairo $ do
+    white 0.24
+    setLineWidth 0.1
+
+  initialParts 2000
+
+
+
 
 render :: Generate ()
 render = do

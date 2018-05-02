@@ -19,6 +19,11 @@ executable genart
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                     ,  cairo
+                    ,  haskell-gi-base
+                    ,  gi-cairo
+                    ,  gi-glib
+                  --  ,  gi-gdk
+                    ,  gi-gtk
                     ,  colour
                     ,  mtl
                     ,  hsnoise
