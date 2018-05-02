@@ -30,5 +30,8 @@ executable genart
                     ,  linear
                     ,  MonadRandom
                     ,  normaldistribution
+                    ,  reactive-banana
+                    ,  reactive-banana-gi-gtk
+                    ,  text
                     ,  time
                     ,  transformers

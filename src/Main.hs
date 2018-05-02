@@ -1,9 +1,16 @@
-{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLabels    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 
 module Main where
 
+import qualified Data.Text                         as T
+
+
+
 
 import           BinaryRing
+import           Control.Exception                 (catch)
 import           Control.Monad                     (when)
 import           Control.Monad.Cont
 import           Control.Monad.Random              (runRandT)
@@ -20,13 +27,17 @@ import           Graphics.Rendering.Cairo.Types    (Cairo (Cairo))
 import           World.Generate
 
 
-
 import           Data.GI.Base
 import qualified GI.Cairo
 -- import qualified GI.Gdk                     as Gdk
 -- import qualified GI.GdkPixbuf               as GP
 import qualified GI.GLib                           as GLib
 import qualified GI.Gtk                            as Gtk
+
+import           Reactive.Banana
+import           Reactive.Banana.Frameworks
+import           Reactive.Banana.GI.Gtk
+
 
 
 
@@ -52,7 +63,7 @@ drawCB seed cc ctx = do
 setTimeoutCallback :: Int -> Gtk.Window -> Generate [BinaryRing.Particle] -> IO ()
 setTimeoutCallback s w c = do
 
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 1000 $ do
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 10000 $ do
     on w #draw (drawCB s c)
     #queueDraw w
     setTimeoutCallback s w (c >>= BinaryRing.moveAllAndFlip)
@@ -60,21 +71,24 @@ setTimeoutCallback s w c = do
   pure ()
 
 
+networkDescription :: MomentIO ()
+networkDescription = do
+  window <- new Gtk.Window []
+  on window #destroy Gtk.mainQuit
+  #showAll window
+
+
+runGtk = do
+  seed <- round . (*1000) <$> getPOSIXTime
+  _ <- Gtk.init Nothing
+  compile networkDescription >>= actuate
+  Gtk.main
 
 main :: IO ()
 main = do
-  seed <- round . (*1000) <$> getPOSIXTime
-  _ <- Gtk.init Nothing
-  window <- new Gtk.Window []
-  on window #destroy Gtk.mainQuit
-
-  setTimeoutCallback seed window BinaryRing.createParticles
+  runGtk `catch` (\(e::GError) -> gerrorMessage e >>= putStrLn . T.unpack)
 
 
-
-  #showAll window
-
-  Gtk.main
 
 
 
