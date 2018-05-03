@@ -2,20 +2,21 @@
 {-# LANGUAGE TypeApplications #-}
 
 
-module BinaryRing where
+module BinaryRing (init, step, render) where
 
 import           Control.Monad            (when)
-import           Control.Monad.Random     (getRandomR, mkStdGen, runRandT)
+import           Control.Monad.Random     (getRandomR, getRandomRs, mkStdGen,
+                                           runRandT)
 import           Control.Monad.Reader     (runReaderT, void)
 import           Data.Monoid              ((<>))
 import           Debug.Trace
 import           Graphics.Rendering.Cairo
+import           Prelude                  hiding (init)
 import           World.Generate
 
-
-wWidth = 100
-wHeight = 100
-scaleAmt = 10
+wWidth = 240
+wHeight = 140
+scaleAmt = 5
 world seed = World wWidth wHeight seed (fromIntegral scaleAmt)
 generator = mkStdGen
 
@@ -30,25 +31,14 @@ data Particle = Particle
   , age :: Int
   }
 
-generate :: Int -> IO Surface
-generate seed = do
-  let
-    w = World wWidth wHeight seed (fromIntegral scaleAmt)
-    g = mkStdGen seed
-  s <- createImageSurface FormatARGB32 (wWidth * scaleAmt) (wHeight * scaleAmt)
-  void
-    . renderWith s
-    . flip runReaderT w
-    . flip runRandT g
-    $ do
-      cairo $ scale (fromIntegral scaleAmt) (fromIntegral scaleAmt)
+init :: Generate [Particle]
+init = createParticles
 
-      render
+step :: [Particle] -> Generate [Particle]
+step = moveAllAndFlip
 
-  pure s
-
-onScreenRender :: Int -> Render ()
-onScreenRender seed = do
+render :: Int -> Generate [Particle] -> Render ()
+render seed imgDef = do
   let
     w = World wWidth wHeight seed (fromIntegral scaleAmt)
     g = mkStdGen seed
@@ -57,7 +47,11 @@ onScreenRender seed = do
     . flip runRandT g
     $ do
       cairo $ scale (fromIntegral scaleAmt) (fromIntegral scaleAmt)
-      render
+      imgDef
+
+
+
+
 
 createParticles :: Generate [Particle]
 createParticles = do
@@ -68,91 +62,23 @@ createParticles = do
     white 0.24
     setLineWidth 0.1
 
-  initialParts 2000
+  initialParts 1500
 
 
-
-
-render :: Generate ()
-render = do
-  fillScreen black 1
-  cairo save
-
-  cairo $ translate (fromIntegral wWidth / 2) (fromIntegral wHeight / 2)
-  cairo $ do
-    white 0.25
-    setLineWidth 0.1
-
-  initialParts 2000
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-    >>= moveAllAndFlip
-  cairo restore
 
 move :: Particle -> Generate Particle
 move Particle {..} = do
   rx <- getRandomR (-0.5, 0.5)
   ry <- getRandomR (-0.5, 0.5)
+
   let
     nx = x + vx
     ny = y + vy
     nvx = vx + rx
     nvy = vy + ry
-    np = Particle nx ny nvx nvy r (age - 1)
+    np = if age > 200
+            then Particle (10*sin r) (10*cos r)  0 0 r 0
+            else Particle nx ny nvx nvy r (age + 1)
 
   cairo $ do
     moveTo x y
@@ -182,20 +108,21 @@ moveAllAndFlip ps = do
 initialParts :: Int -> Generate [Particle]
 initialParts n = do
   (w,h) <- getSize
-  let ps = part <$> [1..n]
+  ages <- getRandomRs (1, 200)
+  let ps = part <$> [1..n] `zip` ages
   pure ps
     where
-      part i =
+      part (i, a) =
         let
           x = (10 * sin (twoPi * fromIntegral i / fromIntegral n))
           y = (10 * cos (twoPi * fromIntegral i / fromIntegral n))
           r = pi * fromIntegral i / fromIntegral n
-        in mkPart x y r
+        in mkPart x y r a
 
 
-mkPart :: Double -> Double -> Double -> Particle
-mkPart dx dy r =
-  Particle dx dy (0.2*cos(r)) (0.2*sin(r)) r 200
+mkPart :: Double -> Double -> Double -> Int -> Particle
+mkPart dx dy r a =
+  Particle dx dy (0.2*cos(r)) (0.2*sin(r)) r a
 
 
 
