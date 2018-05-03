@@ -4,7 +4,7 @@
 
 module Main where
 
-import           BinaryRing
+import qualified Substrate                         as D
 --import           Control.Monad.Random              (runRandT)
 import           Control.Concurrent                (forkIO, threadDelay, yield)
 import           Control.Monad                     (forever)
@@ -34,15 +34,15 @@ renderWithContext ct r = withManagedPtr ct $ \p ->
 computeDrawing ref =
   forever $ do
     g <- readIORef ref
-    writeIORef ref (g >>= BinaryRing.step)
+    writeIORef ref (g >>= D.step)
     threadDelay 100000
 
 
 
 drawCB seed ref ctx = do
   imgDef <- readIORef ref
-  --writeIORef ref (imgDef >>= BinaryRing.step)
-  renderWithContext ctx $ BinaryRing.render seed imgDef
+
+  renderWithContext ctx $ D.render seed imgDef
   pure True
 
 main :: IO ()
@@ -52,7 +52,7 @@ main = do
 
   window <- new Gtk.Window [#defaultWidth := 1300, #defaultHeight := 700]
 
-  ref <- newIORef BinaryRing.init
+  ref <- newIORef D.init
   taskId <- forkIO (computeDrawing ref)
 
   on window #destroy Gtk.mainQuit
