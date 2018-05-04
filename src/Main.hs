@@ -43,6 +43,7 @@ drawCB seed ref ctx = do
   imgDef <- readIORef ref
 
   renderWithContext ctx $ D.render seed imgDef
+  atomicWriteIORef ref (imgDef >>= D.step)
   pure True
 
 main :: IO ()
@@ -53,13 +54,13 @@ main = do
   window <- new Gtk.Window [#defaultWidth := 1300, #defaultHeight := 700]
 
   ref <- newIORef D.init
-  taskId <- forkIO (computeDrawing ref)
+  --taskId <- forkIO (computeDrawing ref)
 
   on window #destroy Gtk.mainQuit
 
   on window #draw (drawCB seed ref)
 
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 16 (yield >> #queueDraw window >> pure True)
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 100 (yield >> #queueDraw window >> pure True)
 
   #showAll window
 
