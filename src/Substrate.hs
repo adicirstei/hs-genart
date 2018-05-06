@@ -35,7 +35,7 @@ type ColorFn = Double -> Render ()
 type CGrid = Array Integer Double
 
 
-wWidth = 250
+wWidth = 140
 wHeight = 140
 scaleAmt = 5
 
@@ -44,7 +44,7 @@ size = wWidth * wHeight - 1
 init :: Generate (CGrid, [Crack])
 init = do
   g <- cgrid
-  cs <- noNothings <$> traverse (\_ -> mkCrack g)  [1..3]
+  cs <- noNothings <$> traverse (\_ -> mkCrack g)  [1..7]
   fillScreen white 1
   pure $ (g,cs)
 
@@ -52,7 +52,7 @@ step :: (CGrid, [Crack]) -> Generate (CGrid, [Crack])
 step (g,cs) = do
   (g',z) <- foldM folder (g,[]) cs
 
-  pure (g', z)
+  pure (g', trace ("len " <> show (length z)) z)
     where
       folder (g, cs) c = do
         (g', cs') <- move g c
@@ -77,10 +77,10 @@ move g c@(Crack x y t sp) = do
     x' = x + 0.42 * cosa t
     y' = y + 0.42 * sina t
     newC = Crack x' y' t sp
-  cx <- round . (+x') <$> getRandomR (-0.33, 0.33)
-  cy <- round . (+y') <$> getRandomR (-0.33, 0.33)
-  dx <- getRandomR (-0.33, 0.33)
-  dy <- getRandomR (-0.33, 0.33)
+  cx <- round . (+x') <$> getRandomR (-0.1, 0.1)
+  cy <- round . (+y') <$> getRandomR (-0.1, 0.1)
+  dx <- getRandomR (-0.07, 0.07)
+  dy <- getRandomR (-0.07, 0.07)
   regionColor g newC
   cairo $ do
     rectangle (x'+dx) (y'+dy) 0.2 0.2
@@ -89,12 +89,12 @@ move g c@(Crack x y t sp) = do
   if (cx >= 0 && cx < wWidth && cy >= 0 && cy < wHeight) && (g ! idx > 10000 || abs (t - g ! idx) < 5)
     then do
       let g' = g // [(idx,t)]
-      pure (g', [c])
+      pure (g', [newC])
     else do
       mc <- mkCrack g
       case mc of
-        Nothing -> pure (g, [c])
-        Just c' -> pure (g, [c, c'])
+        Nothing -> pure (g, [newC])
+        Just c' -> pure (g, [newC, c'])
 
 
 regionColor :: CGrid -> Crack -> Generate Crack

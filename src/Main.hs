@@ -43,7 +43,7 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
   _ <- Gtk.init Nothing
 
-  window <- new Gtk.Window [#defaultWidth := 1300, #defaultHeight := 700]
+  window <- new Gtk.Window [#defaultWidth := 700, #defaultHeight := 700]
 
   --taskId <- forkIO (computeDrawing ref)
 
