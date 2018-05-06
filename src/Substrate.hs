@@ -52,7 +52,7 @@ step :: (CGrid, [Crack]) -> Generate (CGrid, [Crack])
 step (g,cs) = do
   (g',z) <- foldM folder (g,[]) cs
 
-  pure $ (g', trace ("Z " <> show (length z))  z)
+  pure (g', z)
     where
       folder (g, cs) c = do
         (g', cs') <- move g c
@@ -76,11 +76,12 @@ move g c@(Crack x y t sp) = do
   let
     x' = x + 0.42 * cosa t
     y' = y + 0.42 * sina t
-  cx <- round . (+x) <$> getRandomR (-0.33, 0.33)
-  cy <- round . (+y) <$> getRandomR (-0.33, 0.33)
+    newC = Crack x' y' t sp
+  cx <- round . (+x') <$> getRandomR (-0.33, 0.33)
+  cy <- round . (+y') <$> getRandomR (-0.33, 0.33)
   dx <- getRandomR (-0.33, 0.33)
   dy <- getRandomR (-0.33, 0.33)
-  regionColor g c
+  regionColor g newC
   cairo $ do
     rectangle (x'+dx) (y'+dy) 0.2 0.2
     black 0.85 *> fill
