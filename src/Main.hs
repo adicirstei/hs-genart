@@ -21,57 +21,44 @@ import           Graphics.Rendering.Cairo.Types    (Cairo (Cairo))
 
 
 import           Data.GI.Base
+import           Debug.Trace
 import qualified GI.Cairo
 import qualified GI.GLib                           as GLib
 import qualified GI.Gtk                            as Gtk
-
 
 renderWithContext :: GI.Cairo.Context -> Render () -> IO ()
 renderWithContext ct r = withManagedPtr ct $ \p ->
                          runReaderT (runRender r) (Cairo (castPtr p))
 
 
-computeDrawing ref =
-  forever $ do
-    g <- readIORef ref
-    writeIORef ref (g >>= D.step)
-    threadDelay 100000
-
-
-
 drawCB seed ref ctx = do
   imgDef <- readIORef ref
-
   renderWithContext ctx $ D.render seed imgDef
-  atomicWriteIORef ref (imgDef >>= D.step)
-  pure True
+  pure  True
 
 main :: IO ()
 main = do
+
+  ref <- newIORef D.init
   seed <- round . (*1000) <$> getPOSIXTime
   _ <- Gtk.init Nothing
 
   window <- new Gtk.Window [#defaultWidth := 1300, #defaultHeight := 700]
 
-  ref <- newIORef D.init
   --taskId <- forkIO (computeDrawing ref)
 
   on window #destroy Gtk.mainQuit
 
   on window #draw (drawCB seed ref)
 
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 100 (yield >> #queueDraw window >> pure True)
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 1000 (#queueDraw window >> step ref >> yield >> pure True)
 
   #showAll window
 
   Gtk.main
 
-  -- seed <- round . (*1000) <$> getPOSIXTime
-  --
-  -- putStrLn "Generating art..."
-  --
-  -- sourface <- BinaryRing.generate seed
-  -- surfaceWriteToPNG sourface
-  --   $ "images/example/"
-  --   <> show seed <> ".png"
-  -- surfaceWriteToPNG sourface "images/example/latest.png"
+
+
+step ref = do
+  img <- readIORef ref
+  atomicWriteIORef ref (img >>= D.step)

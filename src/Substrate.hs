@@ -20,12 +20,17 @@ data SandPainter = SandPainter
   { c :: ColorFn
   , g :: Double
   }
+
+instance Show SandPainter where
+  show (SandPainter _ g) = "SP {"<> show g <>"}"
+
+
 data Crack = Crack
   { x  :: Double
   , y  :: Double
   , t  :: Double
   , sp :: SandPainter
-  }
+  } deriving (Show)
 type ColorFn = Double -> Render ()
 type CGrid = Array Integer Double
 
@@ -40,14 +45,14 @@ init :: Generate (CGrid, [Crack])
 init = do
   g <- cgrid
   cs <- noNothings <$> traverse (\_ -> mkCrack g)  [1..3]
-  fillScreen white (trace ("cracks: " <> show (length cs)) $ 1)
+  fillScreen white 1
   pure $ (g,cs)
 
 step :: (CGrid, [Crack]) -> Generate (CGrid, [Crack])
 step (g,cs) = do
-  z <- foldM folder (g,[]) cs
+  (g',z) <- foldM folder (g,[]) cs
 
-  pure z
+  pure $ (g', trace ("Z " <> show (length z))  z)
     where
       folder (g, cs) c = do
         (g', cs') <- move g c
@@ -116,7 +121,7 @@ renderSand (SandPainter c g) x y ox oy = do
       drawGr grains w i = do
         let a = 0.1 - i / (grains * 10.0)
         c a
-        rectangle (ox + (x-ox) * sin (sin (i * w) )) (oy + (y - oy )* sin ( sin (i*w))) 1 1
+        rectangle (ox + (x-ox) * sin (sin (i * w) )) (oy + (y - oy )* sin ( sin (i*w))) 0.2 0.2
         fill
 
 
