@@ -8,6 +8,7 @@ import qualified Substrate                         as D
 --import           Control.Monad.Random              (runRandT)
 import           Control.Concurrent                (forkIO, threadDelay, yield)
 import           Control.Monad                     (forever)
+import           Control.Monad.Random
 import           Control.Monad.Reader
 import           Data.IORef
 --import           Data.Semigroup                    ((<>))
@@ -17,7 +18,7 @@ import           Graphics.Rendering.Cairo
 import           Graphics.Rendering.Cairo.Internal (Render (runRender))
 import           Graphics.Rendering.Cairo.Types    (Cairo (Cairo))
 
---import           World.Generate
+import           World.Generate
 
 
 import           Data.GI.Base
@@ -31,27 +32,54 @@ renderWithContext ct r = withManagedPtr ct $ \p ->
                          runReaderT (runRender r) (Cairo (castPtr p))
 
 
-drawCB seed ref ctx = do
-  imgDef <- readIORef ref
-  renderWithContext ctx $ D.render seed imgDef
+drawCB modelRef imageRef ctx = do
+  (m,g) <- readIORef modelRef
+  srf <- readIORef imageRef
+  renderWithContext ctx $ do
+
+    let (r,g') = runRand (D.renderModel m) g
+    renderWith srf r
+
+    pure ()
+  writeIORef imageRef srf
   pure  True
+
+
 
 main :: IO ()
 main = do
-
-  ref <- newIORef D.init
   seed <- round . (*1000) <$> getPOSIXTime
+
+  let
+    gen = mkStdGen seed
+    initialModel = runRand D.initialModel gen
+  sourface <- createImageSurface FormatARGB32 300 300
+
+  modelRef <- newIORef initialModel
+  imageRef <- newIORef sourface
+  let step = do
+                i <- readIORef imageRef
+                (m,g) <- readIORef modelRef
+                let nextVal = D.step m
+
+                atomicWriteIORef modelRef (runRand nextVal g)
+
   _ <- Gtk.init Nothing
 
-  window <- new Gtk.Window [#defaultWidth := 700, #defaultHeight := 700]
+  window <- new Gtk.Window [#defaultWidth := 300, #defaultHeight := 300]
 
   --taskId <- forkIO (computeDrawing ref)
 
   on window #destroy Gtk.mainQuit
 
-  on window #draw (drawCB seed ref)
+  on window #draw (drawCB modelRef imageRef)
+  -- on window #keyPressEvent $ \_ -> do
+  --   seed' <- round . (*1000) <$> getPOSIXTime
+  --   atomicWriteIORef ref D.init
+  --   on window #draw (drawCB seed' ref)
+  --   return False
 
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 1000 (#queueDraw window >> step ref >> yield >> pure True)
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 100 (#queueDraw window >> step >> yield >> pure True)
 
   #showAll window
 
