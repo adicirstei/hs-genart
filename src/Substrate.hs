@@ -115,6 +115,8 @@ move b g c@(Crack x y t sp@(SandPainter col spg)) = do
   cy <- round . (+y') <$> getRandomR (-z,z)
 
 
+  
+
   let idx = cy * wWidth + cx
   if cx >= 0 && cx < wWidth && cy >= 0 && cy < wHeight
   then
