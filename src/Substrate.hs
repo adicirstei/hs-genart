@@ -40,7 +40,7 @@ type Model = (CGrid, [Crack])
 wWidth = 700
 wHeight = 700
 scaleAmt = 1
-maxCracks = 120
+maxCracks = 70
 
 
 size = wWidth * wHeight - 1

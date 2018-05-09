@@ -79,7 +79,7 @@ main = do
 
   --taskId <- forkIO (computeDrawing ref)
 
-  on window #destroy Gtk.mainQuit
+  on window #destroy $ saveImage imageRef seed "Substrate" >> Gtk.mainQuit
 
   on window #draw (drawCB modelRef imageRef)
   on window #keyPressEvent $ \_ -> do
@@ -100,7 +100,8 @@ main = do
 
 
 saveImage imgRef seed name = do
+  r <- evalRandIO $ getRandomR(toInteger  10000, toInteger 99999)
   srf <- readIORef imgRef
   surfaceWriteToPNG srf
    $ "images/example/" <> name <> "-"
-   <> show seed <> ".png"
+   <> show seed <> "-" <> show r <> ".png"
