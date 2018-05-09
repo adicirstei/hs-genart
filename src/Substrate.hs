@@ -98,17 +98,24 @@ regionColor g c@(Crack x y t sp) = do
 
 
 move :: Bool -> CGrid -> Crack -> RandGen (CGrid, [Crack])
-move b g c@(Crack x y t sp) = do
+move b g c@(Crack x y t sp@(SandPainter col spg)) = do
+  newg <- getRandomR (-0.05, 0.05)
+  let 
+    newg' 
+      | newg + spg > 1 = 1
+      | newg + spg < 0 = 0
+      | otherwise = newg + spg
   let
     x' = x + 0.52 * cosa (fromIntegral t)
     y' = y + 0.52 * sina (fromIntegral t)
-    newC = Crack x' y' t sp
+    newSp = SandPainter col newg'
+    newC = Crack x' y' t newSp
     z = 0.33
   cx <- round . (+x') <$> getRandomR (-z,z)
   cy <- round . (+y') <$> getRandomR (-z,z)
 
-  dx <- getRandomR (-z,z)
-  dy <- getRandomR (-z,z)
+  -- dx <- getRandomR (-z,z)
+  -- dy <- getRandomR (-z,z)
 
   let idx = cy * wWidth + cx
   if cx >= 0 && cx < wWidth && cy >= 0 && cy < wHeight
@@ -152,8 +159,8 @@ renderSand (SandPainter c g) x y ox oy = do
   pure $ traverse (drawGr grains w) [0..grains-1]
     where
       drawGr grains w i = do
-        let a = 0.101 - i / (grains * 10.0)
-        rectangle (ox + (x-ox) * sin (sin (i * w) )) (oy + (y - oy )* sin ( sin (i*w))) 1 1
+        let a = 0.1001 - i / (grains * 10.0)
+        rectangle (ox + (x-ox) * sinsin (i * w) ) (oy + (y - oy )* sinsin (i*w)) 1 1
         c a *> fill
 
 noNothings :: [Maybe a] -> [a]
@@ -205,7 +212,7 @@ mkCrack g = do
 mkSandPainter :: RandGen SandPainter
 mkSandPainter = do
   c <- someColor
-  g <- getRandomR (0.05, 0.4)
+  g <- getRandomR (0.05, 0.3)
   pure $ SandPainter c g
 
 palette = [hsva 2.8 0.76 0.33, hsva 200 0.9 0.5, hsva 129.1 1 0.2667, hsva 71.4 1 0.5804, hsva 52.9 1 0.8941, hsva 68.6 0.7 0.9608, hsva 186.4 0.6878 0.8039]
@@ -220,3 +227,6 @@ twoPi = 2.0 * pi :: Double
 
 cosa = cos . (*(pi/180))
 sina = sin . (*(pi/180))
+
+
+sinsin = sin . sin
