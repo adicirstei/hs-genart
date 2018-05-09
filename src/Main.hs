@@ -59,9 +59,9 @@ main = do
   let
     gen = mkStdGen seed
     initialModel = runRand D.initialModel gen
-  sourface <- createImageSurface FormatARGB32 300 300
+  sourface <- createImageSurface FormatARGB32 700 700
   renderWith sourface $ do
-    rectangle 0 0 300 300
+    rectangle 0 0 700 700
     D.white 1 *> fill
 
   modelRef <- newIORef initialModel
@@ -75,7 +75,7 @@ main = do
 
   _ <- Gtk.init Nothing
 
-  window <- new Gtk.Window [#defaultWidth := 300, #defaultHeight := 300]
+  window <- new Gtk.Window [#defaultWidth := 700, #defaultHeight := 700]
 
   --taskId <- forkIO (computeDrawing ref)
 
@@ -88,14 +88,14 @@ main = do
   --   on window #draw (drawCB seed' ref)
   --   return False
 
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 100 (#queueDraw window >> step >> yield >> pure True)
+  -- on window #buttonPressEvent $ \_ -> do
+  --   seed' <- round . (*1000) <$> getPOSIXTime
+  --   atomicWriteIORef ref D.init
+  --   on window #draw (drawCB seed' ref)
+  --   return False
+
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 20 (#queueDraw window >> step >> yield >> pure True)
 
   #showAll window
 
   Gtk.main
-
-
-
-step ref = do
-  img <- readIORef ref
-  atomicWriteIORef ref (img >>= D.step)
