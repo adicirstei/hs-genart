@@ -1,16 +1,16 @@
 module Substrate   {-- (    init, step, render   )  --}   where
 
+import           Control.Arrow            ((&&&))
 import           Control.Monad            (foldM, when)
-import           Control.Monad.Random     
-import           Control.Monad.Reader     
+import           Control.Monad.Random
+import           Control.Monad.Reader
 import           Data.Array
 import           Data.Functor.Identity    (Identity)
 import           Data.Maybe               (Maybe (..))
 import           Data.Semigroup           ((<>))
 import           Debug.Trace
 import           Graphics.Rendering.Cairo
-import           Control.Arrow            ((&&&))
-import           World.Generate hiding(getSize)
+import           World.Generate           hiding (getSize)
 
 
 --type RandGen a = Rand StdGen a
@@ -27,7 +27,7 @@ run :: World -> StdGen -> RandGen a -> (a, StdGen)
 run w g =
   flip runRand g
   . flip runReaderT w
- 
+
 
 
 
@@ -43,7 +43,7 @@ data Crack = Crack
   , y  :: Double
   , t  :: Integer
   , sp :: SandPainter
-  } 
+  }
 type ColorFn = Double -> Render ()
 type CGrid = Array Integer Integer
 type Model = (CGrid, [Crack])
@@ -112,8 +112,8 @@ move :: Bool -> CGrid -> Crack -> RandGen (CGrid, [Crack])
 move b g c@(Crack x y t sp@(SandPainter col spg)) = do
   newg <- getRandomR (-0.05, 0.05)
   (w,h) <- getSize
-  let 
-    newg' 
+  let
+    newg'
       | newg + spg > 1 = 1
       | newg + spg < 0 = 0
       | otherwise = newg + spg
@@ -206,6 +206,8 @@ someColor = uniform palette
 mkCrack :: CGrid -> RandGen (Maybe Crack)
 mkCrack g = do
   (w, h) <- getSize
+  let isCrack (x,y) =
+        g ! (y*w + x) < 10000
   xs <- getRandomRs (0, w - 1)
   ys <- getRandomRs (0, h - 1)
   let ixs = filter isCrack (xs `zip` ys)
@@ -218,9 +220,6 @@ mkCrack g = do
       let a = r' + g ! (y*w + x)
 
       pure $ Just (Crack ( fromIntegral x + 0.61*cosa (fromIntegral a)) (fromIntegral y + 0.61 * sina (fromIntegral a)) (a `mod` 360) p)
-  where
-    isCrack (x,y) =
-      g ! (y*w + x) < 10000
 
 mkSandPainter :: RandGen SandPainter
 mkSandPainter = do
