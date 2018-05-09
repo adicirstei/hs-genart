@@ -1,21 +1,35 @@
 module Substrate   {-- (    init, step, render   )  --}   where
 
 import           Control.Monad            (foldM, when)
-import           Control.Monad.Random     (Rand, StdGen, getRandomR,
-                                           getRandomRs, lift, mkStdGen,
-                                           runRandT, uniform)
-import           Control.Monad.Reader     (runReaderT, void)
+import           Control.Monad.Random     
+import           Control.Monad.Reader     
 import           Data.Array
 import           Data.Functor.Identity    (Identity)
 import           Data.Maybe               (Maybe (..))
 import           Data.Semigroup           ((<>))
 import           Debug.Trace
 import           Graphics.Rendering.Cairo
+import           Control.Arrow            ((&&&))
+import           World.Generate hiding(getSize)
 
-import           World.Generate
+
+--type RandGen a = Rand StdGen a
+
+type RandGen a = ReaderT World (Rand StdGen) a
+
+getSize :: RandGen (Integer, Integer)
+getSize = do
+  (w, h) <- asks (worldWidth &&& worldHeight)
+  pure ( w,  h)
 
 
-type RandGen a = Rand StdGen a
+run :: World -> StdGen -> RandGen a -> (a, StdGen)
+run w g =
+  flip runRand g
+  . flip runReaderT w
+ 
+
+
 
 
 data SandPainter = SandPainter
@@ -23,32 +37,29 @@ data SandPainter = SandPainter
   , g :: Double
   }
 
--- instance Show SandPainter where
---   show (SandPainter _ g) = "SP {"<> show g <>"}"
---
 
 data Crack = Crack
   { x  :: Double
   , y  :: Double
   , t  :: Integer
   , sp :: SandPainter
-  } -- deriving (Show)
+  } 
 type ColorFn = Double -> Render ()
 type CGrid = Array Integer Integer
 type Model = (CGrid, [Crack])
 
 wWidth = 700
 wHeight = 700
-scaleAmt = 1
 maxCracks = 70
 
 
-size = wWidth * wHeight - 1
+--size = wWidth * wHeight - 1
 
 
 initialModel ::RandGen (CGrid, [Crack])
 initialModel = do
-  grid <- cgrid
+  (w,h) <- getSize
+  grid <- cgrid (w * h - 1)
   cracks <- noNothings <$> traverse (\_ -> mkCrack grid) [1..3]
   pure (grid, cracks)
 
@@ -100,6 +111,7 @@ regionColor g c@(Crack x y t sp) = do
 move :: Bool -> CGrid -> Crack -> RandGen (CGrid, [Crack])
 move b g c@(Crack x y t sp@(SandPainter col spg)) = do
   newg <- getRandomR (-0.05, 0.05)
+  (w,h) <- getSize
   let 
     newg' 
       | newg + spg > 1 = 1
@@ -115,10 +127,10 @@ move b g c@(Crack x y t sp@(SandPainter col spg)) = do
   cy <- round . (+y') <$> getRandomR (-z,z)
 
 
-  
 
-  let idx = cy * wWidth + cx
-  if cx >= 0 && cx < wWidth && cy >= 0 && cy < wHeight
+
+  let idx = cy * w + cx
+  if cx >= 0 && cx < w && cy >= 0 && cy < h
   then
     if (g ! idx > 10000) || (abs (t - g ! idx) < 5)
     then do
@@ -169,17 +181,17 @@ noNothings (Nothing:xs) = noNothings xs
 noNothings (Just x:xs)  = x : noNothings xs
 
 
-emptyArrLst =
+emptyArrLst size =
   (\i -> (i, 10001))
     <$> [0 .. size]
 
 
 
-cgrid :: RandGen CGrid
-cgrid = do
-  ixs <- getRandomRs (0, toInteger size)
+cgrid :: Integer -> RandGen CGrid
+cgrid size = do
+  ixs <- getRandomRs (0,  size)
   vals <- getRandomRs (0, 360)
-  pure $ array (0, size) emptyArrLst // take 20 (zip ixs vals)
+  pure $ array (0, size) (emptyArrLst size) // take 20 (zip ixs vals)
 
 
 
@@ -193,8 +205,9 @@ someColor = uniform palette
 
 mkCrack :: CGrid -> RandGen (Maybe Crack)
 mkCrack g = do
-  xs <- getRandomRs (0, toInteger wWidth - 1)
-  ys <- getRandomRs (0, toInteger wHeight - 1)
+  (w, h) <- getSize
+  xs <- getRandomRs (0, w - 1)
+  ys <- getRandomRs (0, h - 1)
   let ixs = filter isCrack (xs `zip` ys)
   case ixs of
     [] -> pure Nothing
@@ -202,12 +215,12 @@ mkCrack g = do
       p <- mkSandPainter
       r <- getRandomR (-2, 2)
       r' <- uniform [90 + r, 90 - r]
-      let a = r' + g ! (y*wWidth + x)
+      let a = r' + g ! (y*w + x)
 
       pure $ Just (Crack ( fromIntegral x + 0.61*cosa (fromIntegral a)) (fromIntegral y + 0.61 * sina (fromIntegral a)) (a `mod` 360) p)
   where
     isCrack (x,y) =
-      g ! (y*wWidth + x) < 10000
+      g ! (y*w + x) < 10000
 
 mkSandPainter :: RandGen SandPainter
 mkSandPainter = do

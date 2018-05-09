@@ -32,23 +32,26 @@ renderWithContext ct r = withManagedPtr ct $ \p ->
                          runReaderT (runRender r) (Cairo (castPtr p))
 
 
-drawCB modelRef imageRef ctx = do
-  (m,g) <- readIORef modelRef
-  srf <- readIORef imageRef
-  renderWithContext ctx $ do
-    save
-    setOperator OperatorSource
-    setSourceRGB 1 1 1
-    paint
-    restore
-    setSourceSurface srf 0 0
-    paint
-    let (r,g') = runRand (D.renderModel m) g
-    renderWith srf r
+-- drawCB modelRef imageRef ctx = do
+--   (m,g) <- readIORef modelRef
+--   srf <- readIORef imageRef
+--   renderWithContext ctx $ do
+--     save
+--     setOperator OperatorSource
+--     setSourceRGB 1 1 1
+--     paint
+--     restore
+--     setSourceSurface srf 0 0
+--     paint
+--     let (r,g') = runRand (D.renderModel m) g
+--     renderWith srf r
 
-    pure ()
-  writeIORef imageRef srf
-  pure  True
+--     pure ()
+--   writeIORef imageRef srf
+--   pure  True
+
+
+
 
 
 
@@ -57,8 +60,10 @@ main = do
   seed <- round . (*1000) <$> getPOSIXTime
 
   let
+    world = World 700 700 seed 1
+    runWithWorld = D.run world
     gen = mkStdGen seed
-    initialModel = runRand D.initialModel gen
+    initialModel = runWithWorld gen D.initialModel 
   sourface <- createImageSurface FormatARGB32 700 700
   renderWith sourface $ do
     rectangle 0 0 700 700
@@ -71,13 +76,31 @@ main = do
                 (m,g) <- readIORef modelRef
                 let nextVal = D.step m
 
-                atomicWriteIORef modelRef (runRand nextVal g)
+                atomicWriteIORef modelRef (runWithWorld g nextVal)
+
+
+  let drawCB modelRef imageRef ctx = do
+        (m,g) <- readIORef modelRef
+        srf <- readIORef imageRef
+        renderWithContext ctx $ do
+          save
+          setOperator OperatorSource
+          setSourceRGB 1 1 1
+          paint
+          restore
+          setSourceSurface srf 0 0
+          paint
+          let (r,g') = runWithWorld g (D.renderModel m) 
+          renderWith srf r
+      
+          pure ()
+        writeIORef imageRef srf
+        pure  True
+
 
   _ <- Gtk.init Nothing
 
   window <- new Gtk.Window [#defaultWidth := 700, #defaultHeight := 700]
-
-  --taskId <- forkIO (computeDrawing ref)
 
   on window #destroy $ saveImage imageRef seed "Substrate" >> Gtk.mainQuit
 

@@ -12,8 +12,8 @@ import           Data.Colour.RGBSpace     (RGB (..))
 import           Data.Colour.RGBSpace.HSV (hsv)
 
 data World = World
-  { worldWidth  :: Int
-  , worldHeight :: Int
+  { worldWidth  :: Integer
+  , worldHeight :: Integer
   , worldSeed   :: Int
   , worldScale  :: Double
   }
