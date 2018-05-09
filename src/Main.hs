@@ -11,7 +11,7 @@ import           Control.Monad                     (forever)
 import           Control.Monad.Random
 import           Control.Monad.Reader
 import           Data.IORef
---import           Data.Semigroup                    ((<>))
+import           Data.Semigroup                    ((<>))
 import           Data.Time.Clock.POSIX
 import           Foreign.Ptr                       (castPtr)
 import           Graphics.Rendering.Cairo
@@ -82,11 +82,9 @@ main = do
   on window #destroy Gtk.mainQuit
 
   on window #draw (drawCB modelRef imageRef)
-  -- on window #keyPressEvent $ \_ -> do
-  --   seed' <- round . (*1000) <$> getPOSIXTime
-  --   atomicWriteIORef ref D.init
-  --   on window #draw (drawCB seed' ref)
-  --   return False
+  on window #keyPressEvent $ \_ -> do
+    saveImage imageRef seed "Substrate"
+    return False
 
   -- on window #buttonPressEvent $ \_ -> do
   --   seed' <- round . (*1000) <$> getPOSIXTime
@@ -99,3 +97,10 @@ main = do
   #showAll window
 
   Gtk.main
+
+
+saveImage imgRef seed name = do
+  srf <- readIORef imgRef
+  surfaceWriteToPNG srf
+   $ "images/example/" <> name <> "-"
+   <> show seed <> ".png"

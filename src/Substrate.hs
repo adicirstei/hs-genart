@@ -40,7 +40,7 @@ type Model = (CGrid, [Crack])
 wWidth = 700
 wHeight = 700
 scaleAmt = 1
-maxCracks = 200
+maxCracks = 120
 
 
 size = wWidth * wHeight - 1
@@ -106,16 +106,14 @@ move b g c@(Crack x y t sp@(SandPainter col spg)) = do
       | newg + spg < 0 = 0
       | otherwise = newg + spg
   let
-    x' = x + 0.52 * cosa (fromIntegral t)
-    y' = y + 0.52 * sina (fromIntegral t)
+    x' = x + 0.33 * cosa (fromIntegral t)
+    y' = y + 0.33 * sina (fromIntegral t)
     newSp = SandPainter col newg'
     newC = Crack x' y' t newSp
     z = 0.33
   cx <- round . (+x') <$> getRandomR (-z,z)
   cy <- round . (+y') <$> getRandomR (-z,z)
 
-  -- dx <- getRandomR (-z,z)
-  -- dy <- getRandomR (-z,z)
 
   let idx = cy * wWidth + cx
   if cx >= 0 && cx < wWidth && cy >= 0 && cy < wHeight
@@ -179,7 +177,7 @@ cgrid :: RandGen CGrid
 cgrid = do
   ixs <- getRandomRs (0, toInteger size)
   vals <- getRandomRs (0, 360)
-  pure $ array (0, size) emptyArrLst // take 16 (zip ixs vals)
+  pure $ array (0, size) emptyArrLst // take 20 (zip ixs vals)
 
 
 
