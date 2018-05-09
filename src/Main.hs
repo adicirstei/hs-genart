@@ -36,7 +36,13 @@ drawCB modelRef imageRef ctx = do
   (m,g) <- readIORef modelRef
   srf <- readIORef imageRef
   renderWithContext ctx $ do
-
+    save
+    setOperator OperatorSource
+    setSourceRGB 1 1 1
+    paint
+    restore
+    setSourceSurface srf 0 0
+    paint
     let (r,g') = runRand (D.renderModel m) g
     renderWith srf r
 
@@ -54,6 +60,9 @@ main = do
     gen = mkStdGen seed
     initialModel = runRand D.initialModel gen
   sourface <- createImageSurface FormatARGB32 300 300
+  renderWith sourface $ do
+    rectangle 0 0 300 300
+    D.white 1 *> fill
 
   modelRef <- newIORef initialModel
   imageRef <- newIORef sourface

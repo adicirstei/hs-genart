@@ -91,7 +91,7 @@ renderCrack g c@(Crack x y t sp) = do
   dy <- getRandomR (-z,z)
   pure $ do
     rectangle (x + dx) (y + dy) 1 1
-    black 0.80 *> fill
+    black 0.40 *> fill
 
 
 regionColor' :: CGrid -> Crack -> RandGen (Render [()])
@@ -137,10 +137,10 @@ move :: Bool -> CGrid -> Crack -> RandGen (CGrid, [Crack])
 move b g c@(Crack x y t sp) = do
   --_ <- renderGrid g
   let
-    x' = x + 0.9 * cosa (fromIntegral t)
-    y' = y + 0.9 * sina (fromIntegral t)
+    x' = x + 0.42 * cosa (fromIntegral t)
+    y' = y + 0.42 * sina (fromIntegral t)
     newC = Crack x' y' t sp
-    z = 0.5
+    z = 0.33
   cx <- round . (+x') <$> getRandomR (-z,z)
   cy <- round . (+y') <$> getRandomR (-z,z)
 
@@ -158,6 +158,7 @@ move b g c@(Crack x y t sp) = do
       let g' = g // [(idx, t)]
       pure (g', [newC])
     else
+
       if (abs (t - g ! idx) > 2)
       then startNewCrack b g newC
       else pure (trace "noop" g, [newC])
@@ -165,12 +166,17 @@ move b g c@(Crack x y t sp) = do
 
 
 startNewCrack b g c = do
+  old <- mkCrack g
+  let
+    cs = case old of
+          Nothing -> []
+          Just cc -> [cc]
   if b then do
     m <- mkCrack g
     case m of
-      Nothing -> pure (g, [c])
-      Just c' -> pure (g, [c', c])
-  else pure (g, [c])
+      Nothing -> pure (g, cs)
+      Just c' -> pure (g, c' : cs)
+  else trace ("limit reached") pure (g, cs)
 
 -- regionColor :: CGrid -> Crack -> Generate Crack
 -- regionColor g c@(Crack x y t sp) = do
@@ -243,9 +249,9 @@ mkCrack g = do
       p <- mkSandPainter
       r <- getRandomR (-2, 2)
       r' <- uniform [90 + r, 90 - r]
-      let a = g ! (y*wWidth + x) + r'
+      let a = r' + g ! (y*wWidth + x)
 
-      pure $ Just (Crack ( fromIntegral x + 0.61*cosa (fromIntegral a)) (fromIntegral y + 0.61 * sina (fromIntegral a)) a p)
+      pure $ Just (Crack ( fromIntegral x + 0.61*cosa (fromIntegral a)) (fromIntegral y + 0.61 * sina (fromIntegral a)) (a `mod` 360) p)
   where
     isCrack (x,y) =
       g ! (y*wWidth + x) < 10000
