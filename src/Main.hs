@@ -32,18 +32,24 @@ renderWithContext ct r = withManagedPtr ct $ \p ->
                          runReaderT (runRender r) (Cairo (castPtr p))
 
 
+wWidth :: Integer
+wWidth = 800
+
+wHeight :: Integer
+wHeight = 450
+
 main :: IO ()
 main = do
   seed <- round . (*1000) <$> getPOSIXTime
 
   let
-    world = World 700 700 seed 1
+    world = World wWidth wHeight (fromIntegral seed) 1
     runWithWorld = D.run world
     gen = mkStdGen seed
     initialModel = runWithWorld gen D.initialModel 
-  sourface <- createImageSurface FormatARGB32 700 700
+  sourface <- createImageSurface FormatARGB32 (fromIntegral wWidth) (fromIntegral wHeight)
   renderWith sourface $ do
-    rectangle 0 0 700 700
+    rectangle 0 0 (fromIntegral wWidth) (fromIntegral wHeight)
     D.white 1 *> fill
 
   modelRef <- newIORef initialModel
@@ -51,28 +57,31 @@ main = do
   let step = do
                 i <- readIORef imageRef
                 (m,g) <- readIORef modelRef
-                let nextVal = D.step m
+                srf <- readIORef imageRef
                 
-                atomicWriteIORef modelRef (runWithWorld g nextVal)
+                let (m', g') = runWithWorld g $ D.step m
+                let (r, g'') = runWithWorld g' $ D.renderModel m'
+                renderWith srf r
+                  
+                atomicWriteIORef imageRef srf
+                atomicWriteIORef modelRef (m',g')
 
 
   let drawCB modelRef imageRef ctx = do
-        (m,g) <- readIORef modelRef
+        
         srf <- readIORef imageRef
         renderWithContext ctx $ do
+          --scale 0.5 0.5
           setSourceSurface srf 0 0
           paint
-          let (r,g') = runWithWorld g (D.renderModel m) 
-          renderWith srf r
-      
           pure ()
-        atomicWriteIORef imageRef srf
+        
         pure  True
 
 
   _ <- Gtk.init Nothing
 
-  window <- new Gtk.Window [#defaultWidth := 700, #defaultHeight := 700]
+  window <- new Gtk.Window [#defaultWidth := fromIntegral wWidth , #defaultHeight := fromIntegral wHeight ]
 
   on window #destroy $ saveImage imageRef seed "Substrate" >> Gtk.mainQuit
 
@@ -86,8 +95,8 @@ main = do
   --   atomicWriteIORef ref D.init
   --   on window #draw (drawCB seed' ref)
   --   return False
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 50 (step >> yield >> #queueDraw window >> yield >>  pure True)
 
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 20 (#queueDraw window >> step >> yield >> pure True)
 
   #showAll window
 

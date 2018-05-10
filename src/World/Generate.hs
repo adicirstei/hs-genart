@@ -14,9 +14,13 @@ import           Data.Colour.RGBSpace.HSV (hsv)
 data World = World
   { worldWidth  :: Integer
   , worldHeight :: Integer
-  , worldSeed   :: Int
+  , worldSeed   :: Integer
   , worldScale  :: Double
   }
+
+type RandGen a = ReaderT World (Rand StdGen) a
+
+
 
 type Generate a = RandT StdGen (ReaderT World Render) a
 

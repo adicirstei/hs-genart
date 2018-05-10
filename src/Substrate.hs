@@ -13,10 +13,6 @@ import           Graphics.Rendering.Cairo
 import           World.Generate           hiding (getSize)
 
 
---type RandGen a = Rand StdGen a
-
-type RandGen a = ReaderT World (Rand StdGen) a
-
 getSize :: RandGen (Integer, Integer)
 getSize = do
   (w, h) <- asks (worldWidth &&& worldHeight)
@@ -27,9 +23,6 @@ run :: World -> StdGen -> RandGen a -> (a, StdGen)
 run w g =
   flip runRand g
   . flip runReaderT w
-
-
-
 
 
 data SandPainter = SandPainter
@@ -50,7 +43,7 @@ type Model = (CGrid, [Crack])
 
 -- wWidth = 700
 -- wHeight = 700
-maxCracks = 10
+maxCracks = 5
 
 
 --size = wWidth * wHeight - 1
@@ -198,11 +191,6 @@ cgrid size = do
   vals <- getRandomRs (0, 360)
   pure $ array (0, size) (emptyArrLst size) // take 20 (zip ixs vals)
 
-
-
-
-
-
 someColor :: RandGen ColorFn
 someColor = uniform palette
 
@@ -230,8 +218,14 @@ mkSandPainter = do
   g <- getRandomR (0.05, 0.3)
   pure $ SandPainter c g
 
-palette = [hsva 2.8 0.76 0.33, hsva 200 0.9 0.5, hsva 129.1 1 0.2667, hsva 71.4 1 0.5804, hsva 52.9 1 0.8941, hsva 68.6 0.7 0.9608, hsva 186.4 0.6878 0.8039]
-
+--palette = [hsva 2.8 0.76 0.33, hsva 200 0.9 0.5, hsva 129.1 1 0.2667, hsva 71.4 1 0.5804, hsva 52.9 1 0.8941, hsva 68.6 0.7 0.9608, hsva 186.4 0.6878 0.8039]
+palette = 
+  [ hsva 60.000 1.000 0.500
+  , hsva 120.000 1.000 0.500
+  , hsva 95.882 0.418 0.478
+  , hsva 45.098 1.000 0.700
+  , hsva 36.000 1.000 0.500
+  ]
 
 point :: ColorFn -> Double -> Double -> Double -> Render ()
 point c a x y = do
