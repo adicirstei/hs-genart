@@ -48,9 +48,9 @@ type ColorFn = Double -> Render ()
 type CGrid = Array Integer Integer
 type Model = (CGrid, [Crack])
 
-wWidth = 700
-wHeight = 700
-maxCracks = 70
+-- wWidth = 700
+-- wHeight = 700
+maxCracks = 10
 
 
 --size = wWidth * wHeight - 1
@@ -91,21 +91,25 @@ renderCrack g c@(Crack x y t sp) = do
   dy <- getRandomR (-z,z)
   pure $ do
     sand
-    rectangle (x + dx) (y + dy) 1 1
-    black 0.40 *> fill
+    point black 0.4 (x+dx) (y+dy)
+    -- rectangle (x + dx) (y + dy) 1 1
+    -- black 0.40 *> fill
 
 
 
 regionColor :: CGrid -> Crack -> RandGen (Render [()])
 regionColor g c@(Crack x y t sp) = do
-  let (rx,ry) = calc (x + 0.81 * sina (fromIntegral t)) (y - 0.81 * cosa (fromIntegral t))
-
-  renderSand sp rx ry x y
-    where
-      calc rx ry =
+  (w, h) <- getSize
+  let 
+    openSpace grid x y =
+        (x >= 0 && x < w && y>=0 && y < h) && (grid ! (x + y * w) > 10000)
+    calc rx ry =
         if openSpace g (round rx) (round ry)
           then calc (rx + 0.81 * sina (fromIntegral t)) (ry - 0.81 * cosa (fromIntegral t))
           else (rx, ry)
+    (rx,ry) = calc (x + 0.81 * sina (fromIntegral t)) (y - 0.81 * cosa (fromIntegral t))
+  renderSand sp rx ry x y
+
 
 
 move :: Bool -> CGrid -> Crack -> RandGen (CGrid, [Crack])
@@ -172,8 +176,9 @@ renderSand (SandPainter c g) x y ox oy = do
     where
       drawGr grains w i = do
         let a = 0.1001 - i / (grains * 10.0)
-        rectangle (ox + (x-ox) * sinsin (i * w) ) (oy + (y - oy )* sinsin (i*w)) 1 1
-        c a *> fill
+        point c a (ox + (x-ox) * sinsin (i * w) ) (oy + (y - oy )* sinsin (i*w))
+        -- rectangle (ox + (x-ox) * sinsin (i * w) ) (oy + (y - oy )* sinsin (i*w)) 1 1
+        -- c a *> fill
 
 noNothings :: [Maybe a] -> [a]
 noNothings []           = []
@@ -195,9 +200,7 @@ cgrid size = do
 
 
 
-openSpace :: CGrid -> Integer -> Integer -> Bool
-openSpace g x y =
-  (x >= 0 && x < wWidth && y>=0 && y < wHeight) && (g ! (x + y * wWidth) > 10000)
+
 
 
 someColor :: RandGen ColorFn
@@ -228,6 +231,16 @@ mkSandPainter = do
   pure $ SandPainter c g
 
 palette = [hsva 2.8 0.76 0.33, hsva 200 0.9 0.5, hsva 129.1 1 0.2667, hsva 71.4 1 0.5804, hsva 52.9 1 0.8941, hsva 68.6 0.7 0.9608, hsva 186.4 0.6878 0.8039]
+
+
+point :: ColorFn -> Double -> Double -> Double -> Render ()
+point c a x y = do
+  rectangle (roundD x) (roundD y) 1 1
+  c a *> fill
+
+roundD :: Double -> Double
+roundD = fromIntegral . round
+
 
 white :: Double -> Render ()
 white = hsva 0 0 1

@@ -32,29 +32,6 @@ renderWithContext ct r = withManagedPtr ct $ \p ->
                          runReaderT (runRender r) (Cairo (castPtr p))
 
 
--- drawCB modelRef imageRef ctx = do
---   (m,g) <- readIORef modelRef
---   srf <- readIORef imageRef
---   renderWithContext ctx $ do
---     save
---     setOperator OperatorSource
---     setSourceRGB 1 1 1
---     paint
---     restore
---     setSourceSurface srf 0 0
---     paint
---     let (r,g') = runRand (D.renderModel m) g
---     renderWith srf r
-
---     pure ()
---   writeIORef imageRef srf
---   pure  True
-
-
-
-
-
-
 main :: IO ()
 main = do
   seed <- round . (*1000) <$> getPOSIXTime
@@ -75,7 +52,7 @@ main = do
                 i <- readIORef imageRef
                 (m,g) <- readIORef modelRef
                 let nextVal = D.step m
-
+                
                 atomicWriteIORef modelRef (runWithWorld g nextVal)
 
 
@@ -83,18 +60,13 @@ main = do
         (m,g) <- readIORef modelRef
         srf <- readIORef imageRef
         renderWithContext ctx $ do
-          save
-          setOperator OperatorSource
-          setSourceRGB 1 1 1
-          paint
-          restore
           setSourceSurface srf 0 0
           paint
           let (r,g') = runWithWorld g (D.renderModel m) 
           renderWith srf r
       
           pure ()
-        writeIORef imageRef srf
+        atomicWriteIORef imageRef srf
         pure  True
 
 
