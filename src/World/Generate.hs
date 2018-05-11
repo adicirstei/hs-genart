@@ -19,28 +19,33 @@ data World = World
   }
 
 type RandGen a = ReaderT World (Rand StdGen) a
-
+type ColorFn = Double -> Render ()
 
 
 type Generate a = RandT StdGen (ReaderT World Render) a
+
+run :: World -> StdGen -> RandGen a -> (a, StdGen)
+run w g =
+  flip runRand g
+  . flip runReaderT w
 
 cairo :: Render a -> Generate a
 cairo = lift . lift
 
 
 
-getSize :: Num a => Generate (a, a)
+getSize :: RandGen (Integer, Integer)
 getSize = do
   (w, h) <- asks (worldWidth &&& worldHeight)
-  pure (fromIntegral w, fromIntegral h)
+  pure ( w,  h)
 
 
-fillScreen :: (Double -> Render a) -> Double -> Generate ()
-fillScreen color opacity = do
-  (w, h) <- getSize @Double
-  cairo $ do
-    rectangle 0 0 w h
-    color opacity *> fill
+-- fillScreen :: (Double -> Render a) -> Double -> Generate ()
+-- fillScreen color opacity = do
+--   (w, h) <- getSize @Double
+--   cairo $ do
+--     rectangle 0 0 w h
+--     color opacity *> fill
 
 
 

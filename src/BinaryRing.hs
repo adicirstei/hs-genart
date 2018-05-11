@@ -2,24 +2,16 @@
 {-# LANGUAGE TypeApplications #-}
 
 
-module BinaryRing (init, step, render) where
+module BinaryRing  where
 
 import           Control.Monad            (when)
 import           Control.Monad.Random     (getRandomR, getRandomRs, mkStdGen,
-                                           runRandT)
+                                           runRandT, weighted )
 import           Control.Monad.Reader     (runReaderT, void)
 import           Data.Monoid              ((<>))
 import           Debug.Trace
 import           Graphics.Rendering.Cairo
-import           Prelude                  hiding (init)
 import           World.Generate
-
-wWidth = 240
-wHeight = 140
-scaleAmt = 5
-world seed = World wWidth wHeight seed (fromIntegral scaleAmt)
-generator = mkStdGen
-
 
 
 data Particle = Particle
@@ -31,42 +23,57 @@ data Particle = Particle
   , age :: Int
   }
 
-init :: Generate [Particle]
-init = createParticles
+data ColorChoice = W | B
 
-step :: [Particle] -> Generate [Particle]
-step = moveAllAndFlip
-
-render :: Int -> Generate [Particle] -> Render ()
-render seed imgDef = do
-  let
-    w = World wWidth wHeight seed (fromIntegral scaleAmt)
-    g = mkStdGen seed
-  void
-    . flip runReaderT w
-    . flip runRandT g
-    $ do
-      cairo $ scale (fromIntegral scaleAmt) (fromIntegral scaleAmt)
-      imgDef
+initialModel ::RandGen (ColorChoice,  [Particle])
+initialModel = do
+  p <- initialParts 1500
+  pure (W, p)
 
 
+step :: (ColorChoice, [Particle]) -> RandGen (ColorChoice, [Particle])
+step (c, ps) = do
+  p' <- traverse move ps
+  change <- changeColor
+  pure (flipC c change, p')
 
+renderSetup = do
+  (w,h) <- getSize
+  pure $ do
+    rectangle 0 0 (fromIntegral w ) (fromIntegral h )
+    black 1 *> fill    
 
+renderModel :: (ColorChoice, [Particle]) -> RandGen (Render [()])
+renderModel (c, ps) = do
+  (w,h) <- getSize
+  pure $ do
+    setLineWidth 1
+    --white 0.24
+    translate (fromIntegral w / 2) (fromIntegral h / 2) 
+    let color = 
+          case c of
+              W -> white
+              B -> black
+    
+    traverse (renderPart color) ps
 
-createParticles :: Generate [Particle]
-createParticles = do
-  fillScreen black 1
-  cairo save
-  cairo $ translate (fromIntegral wWidth / 2) (fromIntegral wHeight / 2)
-  cairo $ do
-    white 0.24
-    setLineWidth 0.1
+    where 
+      renderPart color (Particle x y vx vy _ _) = do
+        moveTo x y
+        lineTo (x + vx) (y + vy)
+        color 0.24 *> stroke
 
-  initialParts 1500
+        moveTo (-x) y
+        lineTo (-x - vx) (y + vy)
+        color 0.24 *> stroke
 
+flipC :: ColorChoice -> Bool -> ColorChoice
+flipC W True = B
+flipC B True = W
+flipC B False = B
+flipC W False = W
 
-
-move :: Particle -> Generate Particle
+move :: Particle -> RandGen Particle
 move Particle {..} = do
   rx <- getRandomR (-0.5, 0.5)
   ry <- getRandomR (-0.5, 0.5)
@@ -77,35 +84,20 @@ move Particle {..} = do
     nvx = vx + rx
     nvy = vy + ry
     np = if age > 200
-            then Particle (10*sin r) (10*cos r)  0 0 r 0
+            then Particle (30*sin r) (30*cos r)  0 0 r 0
             else Particle nx ny nvx nvy r (age + 1)
 
-  cairo $ do
-    moveTo x y
-    lineTo nx ny
-    stroke
-
-    moveTo (-x) y
-    lineTo (-nx) ny
-    stroke
   pure np
 
 
-flipColor :: Generate Double
-flipColor = do
-  r <- getRandomR (0.0, 1.0)
-  when (r < 0.05) (cairo $ white 0.25)
-  when (r > 0.95) (cairo $ black 0.25)
+changeColor :: RandGen Bool
+changeColor = do
+  r <- weighted [(False, 0.99), (True, 0.01)]
   pure r
+      
 
 
-moveAllAndFlip :: [Particle] -> Generate [Particle]
-moveAllAndFlip ps = do
-  _ <- flipColor
-  traverse move ps
-
-
-initialParts :: Int -> Generate [Particle]
+initialParts :: Int -> RandGen [Particle]
 initialParts n = do
   (w,h) <- getSize
   ages <- getRandomRs (1, 200)

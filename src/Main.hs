@@ -4,7 +4,7 @@
 
 module Main where
 
-import qualified Substrate                         as D
+import qualified BinaryRing                         as D
 --import           Control.Monad.Random              (runRandT)
 import           Control.Concurrent                (forkIO, threadDelay, yield)
 import           Control.Monad                     (forever)
@@ -44,13 +44,12 @@ main = do
 
   let
     world = World wWidth wHeight (fromIntegral seed) 1
-    runWithWorld = D.run world
+    runWithWorld = run world
     gen = mkStdGen seed
     initialModel = runWithWorld gen D.initialModel 
   sourface <- createImageSurface FormatARGB32 (fromIntegral wWidth) (fromIntegral wHeight)
-  renderWith sourface $ do
-    rectangle 0 0 (fromIntegral wWidth) (fromIntegral wHeight)
-    D.white 1 *> fill
+  let (r,_) = runWithWorld gen D.renderSetup
+  renderWith sourface r 
 
   modelRef <- newIORef initialModel
   imageRef <- newIORef sourface
@@ -95,7 +94,7 @@ main = do
   --   atomicWriteIORef ref D.init
   --   on window #draw (drawCB seed' ref)
   --   return False
-  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 50 (step >> yield >> #queueDraw window >> yield >>  pure True)
+  GLib.timeoutAdd GLib.PRIORITY_DEFAULT 100 (step >> yield >> #queueDraw window >> yield >>  pure True)
 
 
   #showAll window

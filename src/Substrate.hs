@@ -10,20 +10,7 @@ import           Data.Maybe               (Maybe (..))
 import           Data.Semigroup           ((<>))
 import           Debug.Trace
 import           Graphics.Rendering.Cairo
-import           World.Generate           hiding (getSize)
-
-
-getSize :: RandGen (Integer, Integer)
-getSize = do
-  (w, h) <- asks (worldWidth &&& worldHeight)
-  pure ( w,  h)
-
-
-run :: World -> StdGen -> RandGen a -> (a, StdGen)
-run w g =
-  flip runRand g
-  . flip runReaderT w
-
+import           World.Generate   
 
 data SandPainter = SandPainter
   { c :: ColorFn
@@ -37,7 +24,7 @@ data Crack = Crack
   , t  :: Integer
   , sp :: SandPainter
   }
-type ColorFn = Double -> Render ()
+
 type CGrid = Array Integer Integer
 type Model = (CGrid, [Crack])
 
