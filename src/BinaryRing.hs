@@ -6,7 +6,7 @@ module BinaryRing  where
 
 import           Control.Monad            (when)
 import           Control.Monad.Random     (getRandomR, getRandomRs, mkStdGen,
-                                           runRandT, weighted )
+                                           runRandT, weighted)
 import           Control.Monad.Reader     (runReaderT, void)
 import           Data.Monoid              ((<>))
 import           Debug.Trace
@@ -41,7 +41,7 @@ renderSetup = do
   (w,h) <- getSize
   pure $ do
     rectangle 0 0 (fromIntegral w ) (fromIntegral h )
-    black 1 *> fill    
+    black 1 *> fill
 
 renderModel :: (ColorChoice, [Particle]) -> RandGen (Render [()])
 renderModel (c, ps) = do
@@ -49,15 +49,15 @@ renderModel (c, ps) = do
   pure $ do
     setLineWidth 1
     --white 0.24
-    translate (fromIntegral w / 2) (fromIntegral h / 2) 
-    let color = 
+    translate (fromIntegral w / 2) (fromIntegral h / 2)
+    let color =
           case c of
               W -> white
               B -> black
-    
+
     traverse (renderPart color) ps
 
-    where 
+    where
       renderPart color (Particle x y vx vy _ _) = do
         moveTo x y
         lineTo (x + vx) (y + vy)
@@ -68,8 +68,8 @@ renderModel (c, ps) = do
         color 0.24 *> stroke
 
 flipC :: ColorChoice -> Bool -> ColorChoice
-flipC W True = B
-flipC B True = W
+flipC W True  = B
+flipC B True  = W
 flipC B False = B
 flipC W False = W
 
@@ -94,7 +94,7 @@ changeColor :: RandGen Bool
 changeColor = do
   r <- weighted [(False, 0.99), (True, 0.01)]
   pure r
-      
+
 
 
 initialParts :: Int -> RandGen [Particle]

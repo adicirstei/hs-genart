@@ -4,7 +4,7 @@
 
 module Main where
 
-import qualified BinaryRing                         as D
+import qualified Substrate                         as D
 --import           Control.Monad.Random              (runRandT)
 import           Control.Concurrent                (forkIO, threadDelay, yield)
 import           Control.Monad                     (forever)
@@ -46,10 +46,10 @@ main = do
     world = World wWidth wHeight (fromIntegral seed) 1
     runWithWorld = run world
     gen = mkStdGen seed
-    initialModel = runWithWorld gen D.initialModel 
+    initialModel = runWithWorld gen D.initialModel
   sourface <- createImageSurface FormatARGB32 (fromIntegral wWidth) (fromIntegral wHeight)
   let (r,_) = runWithWorld gen D.renderSetup
-  renderWith sourface r 
+  renderWith sourface r
 
   modelRef <- newIORef initialModel
   imageRef <- newIORef sourface
@@ -57,24 +57,24 @@ main = do
                 i <- readIORef imageRef
                 (m,g) <- readIORef modelRef
                 srf <- readIORef imageRef
-                
+
                 let (m', g') = runWithWorld g $ D.step m
                 let (r, g'') = runWithWorld g' $ D.renderModel m'
                 renderWith srf r
-                  
+
                 atomicWriteIORef imageRef srf
                 atomicWriteIORef modelRef (m',g')
 
 
   let drawCB modelRef imageRef ctx = do
-        
+
         srf <- readIORef imageRef
         renderWithContext ctx $ do
           --scale 0.5 0.5
           setSourceSurface srf 0 0
           paint
           pure ()
-        
+
         pure  True
 
 

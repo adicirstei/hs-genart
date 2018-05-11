@@ -10,7 +10,7 @@ import           Data.Maybe               (Maybe (..))
 import           Data.Semigroup           ((<>))
 import           Debug.Trace
 import           Graphics.Rendering.Cairo
-import           World.Generate   
+import           World.Generate
 
 data SandPainter = SandPainter
   { c :: ColorFn
@@ -28,13 +28,13 @@ data Crack = Crack
 type CGrid = Array Integer Integer
 type Model = (CGrid, [Crack])
 
--- wWidth = 700
--- wHeight = 700
 maxCracks = 5
 
-
---size = wWidth * wHeight - 1
-
+renderSetup = do
+  (w,h) <- getSize
+  pure $ do
+    rectangle 0 0 (fromIntegral w ) (fromIntegral h )
+    white 1 *> fill
 
 initialModel ::RandGen (CGrid, [Crack])
 initialModel = do
@@ -80,7 +80,7 @@ renderCrack g c@(Crack x y t sp) = do
 regionColor :: CGrid -> Crack -> RandGen (Render [()])
 regionColor g c@(Crack x y t sp) = do
   (w, h) <- getSize
-  let 
+  let
     openSpace grid x y =
         (x >= 0 && x < w && y>=0 && y < h) && (grid ! (x + y * w) > 10000)
     calc rx ry =
@@ -206,7 +206,7 @@ mkSandPainter = do
   pure $ SandPainter c g
 
 --palette = [hsva 2.8 0.76 0.33, hsva 200 0.9 0.5, hsva 129.1 1 0.2667, hsva 71.4 1 0.5804, hsva 52.9 1 0.8941, hsva 68.6 0.7 0.9608, hsva 186.4 0.6878 0.8039]
-palette = 
+palette =
   [ hsva 60.000 1.000 0.500
   , hsva 120.000 1.000 0.500
   , hsva 95.882 0.418 0.478
